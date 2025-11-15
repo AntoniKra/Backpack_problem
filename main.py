@@ -1,5 +1,7 @@
 from go_knapsack import GeneticAlgorithm
 import matplotlib.pyplot as plt
+import tkinter as tk
+from tkinter import filedialog
 
 def plot_results(results_dict, title, optimum=None):
     plt.figure(figsize=(12, 8))
@@ -17,17 +19,52 @@ def plot_results(results_dict, title, optimum=None):
     plt.grid(True)
     plt.show()
 
+
+def get_file_path():
+    root = tk.Tk()
+    root.withdraw()
+    return filedialog.askopenfilename(title="Wybierz plik danych")
+
+
 if __name__ == "__main__":
     
-    # --- USTAWIENIA ---
-    # Zmień 'data_file_path' na ścieżkę do Twojego pliku z danymi
-    DATA_FILE_PATH = "low-dimensional/f1_l-d_kp_10_269"  # <--- ZMIEŃ TO
-    OPTIMUM_VALUE = 295                        # <--- ZMIEŃ TO (na optimum dla tego pliku)
+    DATA_FILE_PATH = get_file_path() 
+    DATA_FILE_PATH_SPLITTED = DATA_FILE_PATH.split("/")
+
+    DATA_FILE_PATH_SPLITTED[len(DATA_FILE_PATH_SPLITTED)-2] = DATA_FILE_PATH_SPLITTED[len(DATA_FILE_PATH_SPLITTED)-2] + "-optimum"
+    DATA_FILE_PATH_OPTIMUM=""
+
+    for i in range(0,len(DATA_FILE_PATH_SPLITTED)):
+        current = DATA_FILE_PATH_SPLITTED[i]
+        if i == len(DATA_FILE_PATH_SPLITTED)-1:
+            DATA_FILE_PATH_OPTIMUM += current
+            continue
+        DATA_FILE_PATH_OPTIMUM += current+'/'
+
+    OPTIMUM_VALUE = 0
+
+    with open(DATA_FILE_PATH_OPTIMUM, 'r') as f:
+            first_line = f.readline().split()
+            OPTIMUM_VALUE = int(first_line[0])  
+            
+    print(OPTIMUM_VALUE)         
+    print("Population size:")
+    POPULATION_SIZE =  int(input()) 
+    print("Iterations:")
+    ITERATIONS = int(input())
+    print("Crossover probability")
+    CROSSOVER_PROB =  float(input())  
+    if(CROSSOVER_PROB < 0.5 or CROSSOVER_PROB > 1):
+        print("CROSSOVER_PROB value must be between 0.5 and 1")
+        quit()
     
-    POPULATION_SIZE = 100
-    ITERATIONS = 200
-    CROSSOVER_PROB = 0.8
-    MUTATION_PROB = 0.02 # 2% na gen
+    print("Mutation probability")
+    MUTATION_PROB = float(input()) 
+    if(MUTATION_PROB > 0.1 and MUTATION_PROB < 0):
+        print("MUTATION_PROB value must be positive and smaller or equal to 0.1")
+        quit()
+
+    
 
     # Inicjalizacja głównego obiektu
     ga = GeneticAlgorithm(

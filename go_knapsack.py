@@ -27,13 +27,14 @@ class Individual:
         
         for i in range(self.chromosome_length):
             if self.genotype[i] == 1:
-                total_weight += self.items[i].weight
-                total_value += self.items[i].value
+                current_item = self.items[i]
+                total_weight += current_item.weight
+                total_value += current_item.value
         
         if total_weight > self.capacity:
             return 0
-        else:
-            return total_value
+        
+        return total_value
 
     def __repr__(self):
         return f"Fitness: {self.fitness}"
@@ -54,7 +55,6 @@ class GeneticAlgorithm:
         items = []
         with open(data_file, 'r') as f:
             first_line = f.readline().split()
-            problem_size = int(first_line[0])
             capacity = int(first_line[1])
             
             for line in f:
