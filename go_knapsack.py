@@ -267,3 +267,19 @@ class GeneticAlgorithm:
         
         print("Ewolucja zakończona.")
         return best_fitness_history
+
+    # --- NOWE FUNKCJE (SETTERY) ---
+    
+    def set_mutation_prob(self, prob):
+        """Pozwala na zmianę prawdopodobieństwa mutacji po inicjalizacji."""
+        if 0.0 <= prob <= 0.1:
+            self.mutation_prob = prob
+        else:
+            print(f"OSTRZEŻENIE: Próba ustawienia nieprawidłowej stopy mutacji: {prob}. Używam domyślnej.")
+
+    def set_crossover_prob(self, prob):
+        """Pozwala na zmianę prawdopodobieństwa krzyżowania po inicjalizacji."""
+        if 0.5 <= prob <= 1.0:
+            self.crossover_prob = prob
+        else:
+            print(f"OSTRZEŻENIE: Próba ustawienia nieprawidłowej stopy krzyżowania: {prob}. Używam domyślnej.")

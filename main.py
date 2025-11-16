@@ -117,8 +117,6 @@ if __name__ == "__main__":
     DATA_FILE_PATH = get_file_path() 
     
     # 2. Automatyczne ustalanie ścieżki do pliku z wartością optymalną
-    # Zakłada, że plik optimum jest w folderze siostrzanym z końcówką "-optimum"
-    # Np. 'low-dimensional/plik1' -> 'low-dimensional-optimum/plik1'
     DATA_FILE_PATH_SPLITTED = DATA_FILE_PATH.split("/")
     DATA_FILE_PATH_SPLITTED[len(DATA_FILE_PATH_SPLITTED)-2] = DATA_FILE_PATH_SPLITTED[len(DATA_FILE_PATH_SPLITTED)-2] + "-optimum"
     DATA_FILE_PATH_OPTIMUM = ""
@@ -171,6 +169,7 @@ if __name__ == "__main__":
     print("\n--- Wprowadź parametry algorytmu ---")
     
     # 5. Pobieranie parametrów od użytkownika z użyciem walidacji
+    #    (Te parametry będą bazowe dla wszystkich eksperymentów)
     POPULATION_SIZE = get_validated_input(
         "Rozmiar populacji: ", 
         input_type=int, 
@@ -185,16 +184,17 @@ if __name__ == "__main__":
         hard_min=1
     )
     
-    MUTATION_PROB = get_validated_input(
-        "Prawdopodobieństwo mutacji: ", 
+    # Zapisujemy je jako "bazowe" do późniejszego użytku
+    BASE_MUTATION_PROB = get_validated_input(
+        "Prawdopodobieństwo mutacji (bazowe): ", 
         input_type=float, 
         rec_range=recs.get('mutation_prob'),
         hard_min=0.0,
         hard_max=0.1  # Twardy limit (zgodnie z pierwotnymi założeniami)
     )
 
-    CROSSOVER_PROB = get_validated_input(
-        "Prawdopodobieństwo krzyżowania: ", 
+    BASE_CROSSOVER_PROB = get_validated_input(
+        "Prawdopodobieństwo krzyżowania (bazowe): ", 
         input_type=float, 
         rec_range=recs.get('crossover_prob'),
         hard_min=0.5, # Twardy limit (zgodnie z pierwotnymi założeniami)
@@ -205,31 +205,32 @@ if __name__ == "__main__":
     ga = GeneticAlgorithm(
         data_file=DATA_FILE_PATH,
         population_size=POPULATION_SIZE,
-        crossover_prob=CROSSOVER_PROB,
-        mutation_prob=MUTATION_PROB,
+        crossover_prob=BASE_CROSSOVER_PROB,
+        mutation_prob=BASE_MUTATION_PROB,
         iterations=ITERATIONS
     )
 
     # --- Eksperyment 1: Porównanie selekcji (Wymaganie 4.5) ---
     print("\n--- Uruchamianie Eksperymentu 1: Metody Selekcji ---")
     
+    # Upewniamy się, że algorytm używa bazowych parametrów
+    ga.set_mutation_prob(BASE_MUTATION_PROB)
+    ga.set_crossover_prob(BASE_CROSSOVER_PROB)
+    
     results_selection = {}  # Słownik do przechowywania wyników
     
-    # Uruchomienie ewolucji z selekcją kołem ruletki i krzyżowaniem 1-punktowym
     history_roulette = ga.run_evolution(
         selection_method=ga.selection_roulette_wheel,
         crossover_method=ga.crossover_one_point
     )
     results_selection["Selekcja Kołem Ruletki"] = history_roulette
     
-    # Uruchomienie ewolucji z selekcją rankingową i krzyżowaniem 1-punktowym
     history_rank = ga.run_evolution(
         selection_method=ga.selection_rank,
         crossover_method=ga.crossover_one_point
     )
     results_selection["Selekcja Rankingowa"] = history_rank
 
-    # Wygenerowanie wykresu dla Eksperymentu 1
     plot_results(
         results_selection,
         f"Porównanie Selekcji (Plik: {DATA_FILE_PATH})",
@@ -239,25 +240,81 @@ if __name__ == "__main__":
     # --- Eksperyment 2: Porównanie krzyżowania (Wymaganie 4.5) ---
     print("\n--- Uruchamianie Eksperymentu 2: Metody Krzyżowania ---")
     
+    # Upewniamy się, że algorytm używa bazowych parametrów
+    ga.set_mutation_prob(BASE_MUTATION_PROB)
+    ga.set_crossover_prob(BASE_CROSSOVER_PROB)
+    
     results_crossover = {}
     
-    # Uruchomienie ewolucji z selekcją rankingową i krzyżowaniem 1-punktowym
     history_one_point = ga.run_evolution(
         selection_method=ga.selection_rank,
         crossover_method=ga.crossover_one_point
     )
     results_crossover["Krzyżowanie Jednopunktowe"] = history_one_point
     
-    # Uruchomienie ewolucji z selekcją rankingową i krzyżowaniem 2-punktowym
     history_two_point = ga.run_evolution(
         selection_method=ga.selection_rank,
         crossover_method=ga.crossover_two_point
     )
     results_crossover["Krzyżowanie Dwupunktowe"] = history_two_point
     
-    # Wygenerowanie wykresu dla Eksperymentu 2
     plot_results(
         results_crossover,
         f"Porównanie Krzyżowania (Plik: {DATA_FILE_PATH})",
+        OPTIMUM_VALUE
+    )
+
+    # --- NOWY EKSPERYMENT 3a: Porównanie współczynników mutacji (Wymaganie 3.5) ---
+    print("\n--- Uruchamianie Eksperymentu 3a: Współczynniki Mutacji ---")
+    
+    # Używamy Selekcji Rankingowej i Krzyżowania Jednopunktowego jako stabilnej bazy
+    # Używamy BAZOWEGO prawdopodobieństwa krzyżowania
+    ga.set_crossover_prob(BASE_CROSSOVER_PROB)
+
+    # Definiujemy listę współczynników do przetestowania
+    MUTATION_RATES_TO_TEST = [0.0, 0.01, 0.02, 0.05, 0.1]
+    results_mutation = {}
+
+    for rate in MUTATION_RATES_TO_TEST:
+        print(f"\n--- Testowanie P. Mutacji: {rate} ---")
+        ga.set_mutation_prob(rate)  # Ustawiamy nową wartość mutacji
+        
+        history = ga.run_evolution(
+            selection_method=ga.selection_rank,
+            crossover_method=ga.crossover_one_point
+        )
+        results_mutation[f"Mutacja {rate}"] = history
+
+    # Rysowanie wykresu porównawczego dla mutacji
+    plot_results(
+        results_mutation,
+        f"Porównanie współczynników mutacji (Plik: {DATA_FILE_PATH})",
+        OPTIMUM_VALUE
+    )
+
+    # --- NOWY EKSPERYMENT 3b: Porównanie współczynników krzyżowania (Wymaganie 3.5) ---
+    print("\n--- Uruchamianie Eksperymentu 3b: Współczynniki Krzyżowania ---")
+    
+    # Używamy BAZOWEGO prawdopodobieństwa mutacji
+    ga.set_mutation_prob(BASE_MUTATION_PROB)
+    
+    # Definiujemy listę współczynników do przetestowania
+    CROSSOVER_RATES_TO_TEST = [0.5, 0.7, 0.8, 0.9, 1.0]
+    results_crossover_rates = {}
+
+    for rate in CROSSOVER_RATES_TO_TEST:
+        print(f"\n--- Testowanie P. Krzyżowania: {rate} ---")
+        ga.set_crossover_prob(rate)  # Ustawiamy nową wartość krzyżowania
+        
+        history = ga.run_evolution(
+            selection_method=ga.selection_rank,
+            crossover_method=ga.crossover_one_point
+        )
+        results_crossover_rates[f"Krzyżowanie {rate}"] = history
+
+    # Rysowanie wykresu porównawczego dla krzyżowania
+    plot_results(
+        results_crossover_rates,
+        f"Porównanie współczynników krzyżowania (Plik: {DATA_FILE_PATH})",
         OPTIMUM_VALUE
     )
